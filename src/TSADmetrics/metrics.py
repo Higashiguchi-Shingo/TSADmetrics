@@ -353,7 +353,7 @@ def point_wise_margin(anom, label, thresholds=None, margin=5, n=1000):
                 else:
                     FP_t += 1                   # → FP
             else:                               # 予測が陰性
-                if label[i]:                  # しかし、真異常
+                if label[i] == 1:                  # しかし、真異常
                     FN_t += 1                   # → FN
                 else:
                     TN_t += 1
