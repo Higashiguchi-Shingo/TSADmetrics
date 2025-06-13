@@ -1,5 +1,9 @@
 import numpy as np
+import torch
 from sklearn.metrics import auc
+from torch import Tensor
+from numpy.typing import NDArray
+from typing import Sequence, Union, Tuple
 
 """
 Evaluation metrics for anomaly detection.
@@ -34,6 +38,18 @@ References:
       John Paparrizos, Paul Boniol, Themis Palpanas, Ruey S. Tsay, Aaron Elmore, and Michael J. Franklin.
 """
 
+ArrayLike = Union[Sequence[Union[int, float]], NDArray[Union[np.integer, np.floating]], Tensor]
+def _to_numpy(*arrays: ArrayLike) -> Tuple[NDArray[np.float64], ...]:
+    """
+    Convert `anom` and `score` to NumPy ndarrays of dtype float,
+    regardless of whether they were list, ndarray, or torch.Tensor.
+    """
+    def _convert(x: ArrayLike) -> NDArray[np.float64]:
+        if isinstance(x, Tensor):
+            return x.detach().cpu().numpy().astype(float)
+        return np.asarray(x, dtype=float)
+    return tuple(_convert(arr) for arr in arrays)
+
 def _enumerate_thresholds(rec_errors, n=1000):
     # maximum value of the anomaly score for all time steps in the validation data
     thresholds, step_size = [], abs(np.max(rec_errors) - np.min(rec_errors)) / n
@@ -66,7 +82,7 @@ def _create_sequences(values, window_size, stride, historical=False):
 #      Window-based evaluation
 # --------------------------------- #
 
-def point_adjusted_score_window(anom, labels, thresholds=None, n=1000, margin=10):
+def point_adjusted_score_window(anom, label, thresholds=None, n=1000, margin=10):
     """
     Calculate the point-adjusted anomaly score.
     Details in the DualTF paper
@@ -74,9 +90,11 @@ def point_adjusted_score_window(anom, labels, thresholds=None, n=1000, margin=10
     print('\n ##### Point Adjusted Evaluation #####')   
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
+    
+    anom, label = _to_numpy(anom, label)
 
     anom_seq = _create_sequences(anom, window_size=margin, stride=1)
-    labels_seq = _create_sequences(labels, window_size=margin, stride=1)
+    labels_seq = _create_sequences(label, window_size=margin, stride=1)
     
     TP, TN, FP, FN = [], [], [], []
     precision, recall, f1, fpr = [], [], [], []
@@ -170,6 +188,8 @@ def point_adjusted_score_point(anom, label, thresholds=None, n=1000):
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
     
+    anom, label = _to_numpy(anom, label)
+    
     TP, TN, FP, FN = [], [], [], []
     precision, recall, fpr, f1 = [], [], [], []
 
@@ -251,9 +271,10 @@ def _point_adjust_delay(anom, label, threshold=0.5, delay=7):
 
 def point_adjusted_score_delay(anom, label, thresholds=None, n=1000, delay=7):
     print('\n ##### Point Adjusted Score with Delay Evaluation #####')
-
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
+
+    anom, label = _to_numpy(anom, label)
     
     TP, TN, FP, FN = [], [], [], []
     precision, recall, fpr, f1 = [], [], [], []
@@ -311,9 +332,10 @@ def point_adjusted_score_delay(anom, label, thresholds=None, n=1000, delay=7):
 
 def point_wise_margin(anom, label, thresholds=None, margin=5, n=1000):
     print('\n ##### Point-wise Score with Tolerance Evaluation #####')
-
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
+    
+    anom, label = _to_numpy(anom, label)
     
     TP, TN, FP, FN = [], [], [], []
     precision, recall, fpr, f1 = [], [], [], []
@@ -375,9 +397,10 @@ def point_wise_margin(anom, label, thresholds=None, margin=5, n=1000):
 
 def point_wise_score(anom, label, thresholds=None, n=1000):
     print('\n ##### Point-wise Score #####')
-
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
+    
+    anom, label = _to_numpy(anom, label)
     
     TP, TN, FP, FN = [], [], [], []
     precision, recall, fpr, f1 = [], [], [], []
@@ -568,6 +591,7 @@ def TPR_FPR_RangeAUC(labels, pred, P, L):
 
 
 def RangeAUC(score, labels, window=10, percentage=None, n=1000, verbose=False):
+    score, labels = _to_numpy(score, labels)
     score_sorted = -np.sort(-score)
 
     P = np.sum(labels)
@@ -639,6 +663,8 @@ def RangeVUS(score, labels_original, min_w=1, max_w=20, n=1000):
     ap_3d=[]
     
     window_3d = np.arange(min_w, max_w + 1, 1)
+
+    score, labels_original = _to_numpy(score, labels_original)
     
     for window in window_3d:
         r_auc = RangeAUC(score, labels_original, window=window, n=n)
