@@ -346,7 +346,7 @@ def point_wise_margin(anom, label, thresholds=None, margin=5, n=1000):
 
         TP_t = FP_t = TN_t = FN_t = 0
         for i in range(len(pred)):
-            within_tol = np.any(np.abs(true_idx - i) <= margin)
+            within_tol = np.any(abs(true_idx - i) <= margin)
             if pred[i] == 1:                    # 予測が陽性
                 if within_tol:                  # かつ tol 内に真異常
                     TP_t += 1                   # → TP
