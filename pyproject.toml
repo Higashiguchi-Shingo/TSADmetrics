@@ -12,6 +12,9 @@ dependencies = [
     "numpy (>=2.3.0,<3.0.0)",
     "scikit-learn (>=1.7.0,<2.0.0)"
 ]
+packages = [
+    { include = "tsadmetrics", from = "src" }
+]
 
 
 [build-system]
