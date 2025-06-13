@@ -332,6 +332,7 @@ def point_adjusted_score_delay(anom, label, thresholds=None, n=1000, delay=7):
 
 def point_wise_margin(anom, label, thresholds=None, margin=5, n=1000):
     print('\n ##### Point-wise Score with Tolerance Evaluation #####')
+    print("Margin: ", margin)
     if thresholds is None:
         thresholds = _enumerate_thresholds(anom, n=n)
     
